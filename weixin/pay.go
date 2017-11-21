@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"reflect"
 	"sort"
 	"strings"
 )
@@ -59,6 +60,27 @@ type UnifyOrderResp struct {
 type SimpleResponse struct {
 	ReturnCode string `xml:"return_code"`
 	ReturnMsg  string `xml:"return_msg"`
+}
+
+//NotifyRequest notify request
+type NotifyRequest struct {
+	ReturnCode    string `xml:"return_code"`
+	ReturnMsg     string `xml:"return_msg"`
+	Appid         string `xml:"appid"`
+	MchID         string `xml:"mch_id"`
+	NonceStr      string `xml:"nonce_str"`
+	Openid        string `xml:"openid"`
+	Sign          string `xml:"sign"`
+	ResultCode    string `xml:"result_code"`
+	TradeType     string `xml:"trade_type"`
+	BankType      string `xml:"bank_type"`
+	TotalFee      int64  `xml:"total_fee"`
+	CashFee       int64  `xml:"cash_fee"`
+	TransactionID string `xml:"transaction_id"`
+	OutTradeNO    string `xml:"out_trade_no"`
+	TimeEnd       string `xml:"time_end"`
+	FeeType       string `xml:"fee_type"`
+	IsSubscribe   string `xml:"is_subscribe"`
 }
 
 func checkRsp(body io.ReadCloser) bool {
@@ -163,4 +185,23 @@ func (p *WxPay) UnifyPayRequest(req UnifyOrderReq) (*UnifyOrderResp, error) {
 		return nil, err
 	}
 	return &res, nil
+}
+
+//VerifyNotify verify notify sign
+func (p *WxPay) VerifyNotify(req NotifyRequest) bool {
+	vt := reflect.TypeOf(req)
+	vv := reflect.ValueOf(req)
+	m := make(map[string]interface{})
+
+	for i := 0; i < vt.NumField(); i++ {
+		f := vt.Field(i)
+		name := f.Tag.Get("xml")
+		m[name] = vv.FieldByName(f.Name).Interface()
+		log.Printf("name:%s value:%v", name, vv.FieldByName(f.Name).Interface())
+	}
+	sign := p.CalcSign(m)
+	if req.Sign != sign {
+		return false
+	}
+	return true
 }
