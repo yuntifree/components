@@ -10,8 +10,10 @@ import (
 )
 
 const (
-	wxAuthURL  = "https://open.weixin.qq.com/connect/oauth2/authorize"
-	wxTokenURL = "https://api.weixin.qq.com/sns/oauth2/access_token"
+	wxAuthURL   = "https://open.weixin.qq.com/connect/oauth2/authorize"
+	wxTokenURL  = "https://api.weixin.qq.com/sns/oauth2/access_token"
+	wxAccessURL = "https://api.weixin.qq.com/cgi-bin/token"
+	wxTicketURL = "https://api.weixin.qq.com/cgi-bin/ticket/getticket"
 )
 
 //WxInfo weixin info
@@ -68,4 +70,51 @@ func (w *WxInfo) GetCodeToken(code string) (*UserInfo, error) {
 	info.Openid = openid
 	info.Token = token
 	return &info, nil
+}
+
+//GetWxToken get wx token
+func GetWxToken(appid, appsec string) (token string, err error) {
+	url := fmt.Sprintf("%s?grant_type=client_credential&appid=%s&secret=%s",
+		wxAccessURL, appid, appsec)
+	res, err := httputil.Request(url, "")
+	if err != nil {
+		log.Printf("fetch url %s failed:%v", url, err)
+		return
+	}
+
+	log.Printf("GetWxToken resp:%s\n", res)
+	js, err := simplejson.NewJson([]byte(res))
+	if err != nil {
+		log.Printf("parse resp %s failed:%v", res, err)
+		return
+	}
+
+	token, err = js.Get("access_token").String()
+	if err != nil {
+		log.Printf("json get access_token failed:%v", err)
+	}
+	return
+}
+
+//GetWxJsapiTicket get wx jsapi ticket
+func GetWxJsapiTicket(token string) (ticket string, err error) {
+	url := fmt.Sprintf("%s?access_token=%s&type=jsapi", wxTicketURL, token)
+	res, err := httputil.Request(url, "")
+	if err != nil {
+		log.Printf("fetch url %s failed:%v", url, err)
+		return
+	}
+
+	log.Printf("GetWxJsapiTicket resp:%s\n", res)
+	js, err := simplejson.NewJson([]byte(res))
+	if err != nil {
+		log.Printf("parse resp %s failed:%v", res, err)
+		return
+	}
+
+	ticket, err = js.Get("ticket").String()
+	if err != nil {
+		log.Printf("json get ticket failed:%v", err)
+	}
+	return
 }
