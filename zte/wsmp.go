@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"Server/util"
+	"github.com/yuntifree/components/httputil"
 
 	simplejson "github.com/bitly/go-simplejson"
 )
@@ -24,6 +24,8 @@ const (
 )
 
 var errStatus = errors.New("zte op failed")
+
+//ErrForbid  for login forbid
 var ErrForbid = errors.New("login forbid")
 
 func genHead(action string) *simplejson.Json {
@@ -91,7 +93,7 @@ func genWsmpURL(stype uint) string {
 
 func getResponse(body string, stype uint) (*simplejson.Json, error) {
 	url := genWsmpURL(stype)
-	resp, err := util.HTTPRequest(url, body)
+	resp, err := httputil.Request(url, body)
 	if err != nil {
 		log.Printf("HTTPRequest failed:%v", err)
 		return nil, err
